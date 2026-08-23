@@ -1,0 +1,9 @@
+{
+  "_comment": "Exercises AV-string validation: the addiction effect's av is a typo, so it should log a clear error and skip that effect (no crash). Throwaway category.",
+  "categories": {
+    "badtest": {
+      "group": "zzAddictionTest.esp|0x800",
+      "addiction": { "spell": "zzAddictionTest.esp|0x803", "av": "NotARealActorValue", "max": 10.0 }
+    }
+  }
+}

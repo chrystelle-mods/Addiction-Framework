@@ -1,0 +1,12 @@
+{
+  "_comment": "Example Addiction Framework BLACKOUT SCENARIO registration. AF scans BlackoutOutcomes/*.json at load; when the player blacks out, AF weighted-picks one ELIGIBLE registered scenario (by the chances set in the in-game 'Addiction Framework > Blackout Scenarios' menu) or the built-in default (fade + ~6h skip). 'quest' must resolve (its plugin installed) for this scenario to be offered — it doubles as the installed-or-not check. 'categories' limits which addiction categories can trigger this scenario ('any', a string, or a list). 'chance' is the author-suggested starting weight 0-100; the player overrides it in the menu (persisted per save). This scenario is implemented by a start-up-stage quest fragment that runs when AF Start()s the quest.",
+  "_gates_comment": "OPTIONAL eligibility GATES, checked at the instant of the blackout. A gate that's present must pass; an absent gate is unrestricted; different gate types are AND'd. A gated-out scenario is dropped from the weighted draw BEFORE it runs, so its chance mass falls to the other eligible scenarios, then to the built-in default (the blackout still happens). Keys prefixed with '_' (like this one and the two examples below) are ignored by AF. See the two real keys 'locations' and 'nearbyFaction'.",
+  "_locations_example": ["inn", "city", "town", "dungeon", "dwelling", "store", "temple", "fort", "camp", "farm", "castle", "habitation", "wilderness", "LocTypeSomeCustomKeyword", "SomeMod.esp|0x000800"],
+  "_nearbyFaction_example": { "faction": ["SomeMod.esp|0x000801", "Skyrim.esm|0x0002BF9C"], "radius": 3000, "count": 1 },
+
+  "name": "WakeUpInJail",
+  "description": "Pass out and wake up in the jail of the hold you're in (Whiterun if it can't be told). Your gear goes to the evidence chest.",
+  "quest": "AF_WakeUpInJail.esp|0x800",
+  "categories": ["alcohol"],
+  "chance": 100
+}

@@ -1,0 +1,6 @@
+/build/
+/out/
+*.user
+.vs/
+docs
+README.md

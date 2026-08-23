@@ -1,0 +1,14 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg/master/scripts/vcpkg.schema.json",
+  "name": "addictionframework",
+  "version-string": "0.1.0",
+  "description": "General-purpose player addiction framework: revives Skyrim's dormant addiction system and exposes it to mods.",
+  "builtin-baseline": "fc3f61366102c1f0d4547c06d03c523bb18c13a7",
+  "dependencies": [
+    "directxmath",
+    "directxtk",
+    "nlohmann-json",
+    "rapidcsv",
+    "spdlog"
+  ]
+}

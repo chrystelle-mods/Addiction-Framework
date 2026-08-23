@@ -1,0 +1,37 @@
+{
+    "version": 2,
+    "cmakeMinimumRequired": { "major": 3, "minor": 21, "patch": 0 },
+    "configurePresets": [
+        {
+            "name": "vcpkg",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+                "VCPKG_TARGET_TRIPLET": "x64-windows-skse",
+                "VCPKG_HOST_TRIPLET": "x64-windows-skse",
+                "VCPKG_OVERLAY_TRIPLETS": "${sourceDir}/cmake",
+                "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL"
+            }
+        },
+        {
+            "name": "build-release-msvc",
+            "inherits": [ "vcpkg" ],
+            "displayName": "Release",
+            "description": "Optimized release build (RelWithDebInfo).",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/release-msvc",
+            "architecture": { "value": "x64", "strategy": "external" },
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+                "CMAKE_CXX_FLAGS": "/permissive- /Zc:preprocessor /EHsc /MP -DWIN32_LEAN_AND_MEAN -DNOMINMAX -DUNICODE -D_UNICODE"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "release-msvc",
+            "displayName": "Release (MSVC)",
+            "configurePreset": "build-release-msvc"
+        }
+    ]
+}

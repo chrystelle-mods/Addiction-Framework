@@ -1,0 +1,19 @@
+{
+  "categories": {
+    "caffeine": {
+      "gain": 9.0,
+      "gainFalloff": 1.5,
+      "decay": 0.4,
+      "addictionThreshold": 15.0,
+      "toleranceHours": 20.0,
+      "group": "zzAddictionTest.esp|0x804",
+      "faction": "zzAddictionTest.esp|0x808",
+      "addiction":  { "spell": "zzAddictionTest.esp|0x803", "av": "StaminaRateMult", "max": 50.0, "detrimental": true },
+      "withdrawal": { "spell": "zzAddictionTest.esp|0x806", "av": "Magicka",         "max": 30.0, "detrimental": true, "name": "Caffeine Crash" }
+    }
+  },
+  "consumables": {
+    "zzAddictionTest.esp|0x807": "caffeine",
+    "zzAddictionTest.esp|0x801": "caffeine"
+  }
+}
