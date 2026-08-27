@@ -107,7 +107,21 @@ namespace AddictionFramework
         if (!a_st.addicted) {
             return Stage::kClean;
         }
-        if ((a_now - a_st.lastUseHour) > a_cat.toleranceHours) {
+        // The withdrawal-onset window tightens as addiction deepens: lerp hoursToWithdrawal (at the
+        // addictionThreshold) → hoursToWithdrawalAtPeak (at level 100), evaluated against the CURRENT
+        // (already-settled, decaying) level. Clamp the fraction to [0,1]: the addicted latch holds through
+        // the cold-turkey taper BELOW the threshold, which saturates to the base window (never longer), and
+        // level can't exceed 100. Equal endpoints (the default) → constant window. Sobering up mid-
+        // abstinence relaxes the window, but it's bounded by the base, so onset always still fires.
+        float window = a_cat.hoursToWithdrawal;
+        if (a_cat.hoursToWithdrawalAtPeak != a_cat.hoursToWithdrawal) {
+            const float span = 100.0f - a_cat.addictionThreshold;
+            const float t    = span > 0.0f
+                                   ? std::clamp((a_st.level - a_cat.addictionThreshold) / span, 0.0f, 1.0f)
+                                   : 0.0f;
+            window = std::lerp(a_cat.hoursToWithdrawal, a_cat.hoursToWithdrawalAtPeak, t);
+        }
+        if ((a_now - a_st.lastUseHour) > window) {
             return Stage::kWithdrawal;
         }
         return Stage::kSatisfied;
@@ -149,7 +163,7 @@ namespace AddictionFramework
         }
 
         // Data-out (§9): drive the category's Level/Stage globals for CK/OAR/dialogue conditions.
-        DriveGlobals(a_cat, a_st, stage);
+        DriveGlobals(a_cat, a_st, stage, a_now);
 
         // Blackout tier: edge-detect the higher threshold FIRST, so a fire's window-clear is seen by the
         // acute pass below (dropping the Drunk status + firing AF_OnAcuteEnd in the same update).
@@ -167,7 +181,7 @@ namespace AddictionFramework
         }
     }
 
-    void AddictionManager::DriveGlobals(const Category& a_cat, const State& a_st, Stage a_stage) const
+    void AddictionManager::DriveGlobals(const Category& a_cat, const State& a_st, Stage a_stage, float a_now) const
     {
         // Level global (0–100). Only write on a meaningful drift (globals are polled by conditions; a plain
         // float write is cheap, but skip the no-op churn).
@@ -184,6 +198,23 @@ namespace AddictionFramework
             if (auto* g = RE::TESForm::LookupByID<RE::TESGlobal>(a_cat.stageGlobal)) {
                 if (g->value != sv) {
                     g->value = sv;
+                }
+            }
+        }
+        // Acute-percent global — standardized "how far OVER the acute threshold" so mods can condition on
+        // intensity without knowing a category's potency scale: 0 = off / at threshold, 100 = 2× threshold,
+        // 200 = 3×, unbounded above. `pct = max(0, (potencySum/threshold − 1) × 100)`.
+        if (a_cat.acutePercentGlobal) {
+            float pct = 0.0f;
+            if (a_cat.acuteEnabled && a_cat.acuteThreshold > 0.0f) {
+                pct = (RecentPotency(a_st, a_cat.acuteWindowHours, a_now) / a_cat.acuteThreshold - 1.0f) * 100.0f;
+                if (pct < 0.0f) {
+                    pct = 0.0f;
+                }
+            }
+            if (auto* g = RE::TESForm::LookupByID<RE::TESGlobal>(a_cat.acutePercentGlobal)) {
+                if (std::fabs(g->value - pct) > 0.1f) {
+                    g->value = pct;
                 }
             }
         }
@@ -467,6 +498,38 @@ namespace AddictionFramework
             return 0.0f;
         }
         return RecentPotency(it->second, cat->acuteWindowHours, Now());
+    }
+
+    float AddictionManager::GetAcutePercent(std::uint32_t a_category)
+    {
+        auto it = _states.find(a_category);
+        const Category* cat = FindCategory(a_category);
+        if (it == _states.end() || !cat || !cat->acuteEnabled || cat->acuteThreshold <= 0.0f) {
+            return 0.0f;
+        }
+        const float pct = (RecentPotency(it->second, cat->acuteWindowHours, Now()) / cat->acuteThreshold - 1.0f) * 100.0f;
+        return pct > 0.0f ? pct : 0.0f;
+    }
+
+    void AddictionManager::RegisterAcuteEffect(const std::string& a_name, std::uint32_t a_spellFormID)
+    {
+        if (a_name.empty() || !a_spellFormID) {
+            return;
+        }
+        _acuteEffects[ToLower(a_name)] = a_spellFormID;
+    }
+
+    bool AddictionManager::IsAcuteEffectActive(const std::string& a_name) const
+    {
+        const auto it = _acuteEffects.find(ToLower(a_name));
+        if (it == _acuteEffects.end()) {
+            return false;  // unknown status name
+        }
+        auto* player = RE::PlayerCharacter::GetSingleton();
+        auto* spell  = RE::TESForm::LookupByID<RE::SpellItem>(it->second);
+        // AF ref-count-applies the shared acute spell in DriveAcute, so HasSpell IS the live "is this status
+        // active across any category" answer.
+        return player && spell && player->HasSpell(spell);
     }
 
     float AddictionManager::NotifyUse(std::uint32_t a_category, float a_amount)

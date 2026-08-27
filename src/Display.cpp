@@ -8,6 +8,27 @@ namespace
     // Re-apply only when the largest sub-effect's magnitude has drifted at least this much (points), so we
     // don't remove/re-add the ability every tick — a handful of discrete steps instead.
     constexpr float kMagnitudeStep = 1.0f;
+
+    // Build the single visible carrier's description by listing every sub-effect with its current scaled
+    // magnitude — e.g. "Stamina reduced by 50. Health reduced by 50. Magicka reduced by 50." One MGEF can
+    // only expand its own <mag>, so the numbers are computed and baked here (refreshed on each drift-apply)
+    // rather than left as a <mag> token.
+    std::string ComposeDescription(const std::vector<AddictionFramework::SubEffect>& a_effects, bool a_detrimental,
+                                   float a_level)
+    {
+        std::string out;
+        for (const auto& se : a_effects) {
+            const long n = std::lround(se.max * (a_level / 100.0f));
+            out += se.name.empty() ? std::string("Actor value") : se.name;
+            out += a_detrimental ? " reduced by " : " increased by ";
+            out += std::to_string(n);
+            out += ". ";
+        }
+        if (!out.empty() && out.back() == ' ') {
+            out.pop_back();
+        }
+        return out;
+    }
 }
 
 namespace AddictionFramework
@@ -65,9 +86,17 @@ namespace AddictionFramework
                 } else {
                     mgef->data.flags.reset(Flag::kDetrimental);
                 }
-                mgef->data.flags.reset(Flag::kHideInUI);  // visible feedback
-                if (!a_effects[i].name.empty()) {
-                    mgef->fullName = a_effects[i].name.c_str();  // per-effect name (e.g. "Stamina Regeneration")
+                // Collapse to ONE visible row: blank[0] is the carrier (named after the category effect, e.g.
+                // "Skooma Withdrawal"), its description lists every sub-effect (set at apply time). The other
+                // used blanks still apply their AV but are hidden, so the menu shows a single labeled row per
+                // effect instead of one row per actor value.
+                if (i == 0) {
+                    mgef->data.flags.reset(Flag::kHideInUI);
+                    if (!a_name.empty()) {
+                        mgef->fullName = a_name.c_str();
+                    }
+                } else {
+                    mgef->data.flags.set(Flag::kHideInUI);
                 }
             } else {
                 mgef->data.flags.set(Flag::kHideInUI);  // hide the unused blanks
@@ -125,6 +154,11 @@ namespace AddictionFramework
             if (spell->effects[i]) {
                 spell->effects[i]->effectItem.magnitude = entry.effects[i].max * (a_level / 100.0f);
             }
+        }
+        // Refresh the single visible carrier's description with the current numbers (blank[0]).
+        if (used > 0 && spell->effects[0] && spell->effects[0]->baseEffect) {
+            const std::string desc = ComposeDescription(entry.effects, entry.detrimental, a_level);
+            spell->effects[0]->baseEffect->magicItemDescription = desc.c_str();
         }
         if (has) {
             player->RemoveSpell(spell);

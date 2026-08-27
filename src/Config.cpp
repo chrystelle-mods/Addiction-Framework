@@ -40,32 +40,34 @@ namespace
         RE::FormID       stageGlobal;
         RE::FormID       addictionSpell;
         RE::FormID       withdrawalSpell;
+        RE::FormID       acutePercentGlobal;
     };
     // Transcribed 1:1 from the old _AF_roster.json (skooma/caffeine/alcohol hand-allocated; the reserved
     // namespace 0xDA5–0xEB2 is sequential per 15-form block but written out explicitly to stay verifiable).
+    // acutePct globals (0xEB3–0xEC7) were authored after the roster block; AF drives them each tick.
     constexpr RosterForms kRoster[] = {
-        //  name          group   level   stage   addSpell  wdSpell
-        { "skooma",      0x805,  0x813,  0x814,  0x812,    0x80C },
-        { "caffeine",    0x816,  0x817,  0x818,  0x824,    0x825 },
-        { "alcohol",     0x827,  0x828,  0x829,  0x835,    0x836 },
-        { "cannabis",    0xDB1,  0xDB2,  0xDB3,  0xDAF,    0xDB0 },
-        { "psilocybin",  0xDC0,  0xDC1,  0xDC2,  0xDBE,    0xDBF },
-        { "sex",         0xDCF,  0xDD0,  0xDD1,  0xDCD,    0xDCE },
-        { "gambling",    0xDDE,  0xDDF,  0xDE0,  0xDDC,    0xDDD },
-        { "gestation",   0xDED,  0xDEE,  0xDEF,  0xDEB,    0xDEC },
-        { "lactation",   0xDFC,  0xDFD,  0xDFE,  0xDFA,    0xDFB },
-        { "adrenaline",  0xE0B,  0xE0C,  0xE0D,  0xE09,    0xE0A },
-        { "custom00",    0xE1A,  0xE1B,  0xE1C,  0xE18,    0xE19 },
-        { "custom01",    0xE29,  0xE2A,  0xE2B,  0xE27,    0xE28 },
-        { "custom02",    0xE38,  0xE39,  0xE3A,  0xE36,    0xE37 },
-        { "custom03",    0xE47,  0xE48,  0xE49,  0xE45,    0xE46 },
-        { "custom04",    0xE56,  0xE57,  0xE58,  0xE54,    0xE55 },
-        { "custom05",    0xE65,  0xE66,  0xE67,  0xE63,    0xE64 },
-        { "custom06",    0xE74,  0xE75,  0xE76,  0xE72,    0xE73 },
-        { "custom07",    0xE83,  0xE84,  0xE85,  0xE81,    0xE82 },
-        { "custom08",    0xE92,  0xE93,  0xE94,  0xE90,    0xE91 },
-        { "custom09",    0xEA1,  0xEA2,  0xEA3,  0xE9F,    0xEA0 },
-        { "custom10",    0xEB0,  0xEB1,  0xEB2,  0xEAE,    0xEAF },
+        //  name          group   level   stage   addSpell  wdSpell  acutePct
+        { "skooma",      0x805,  0x813,  0x814,  0x812,    0x80C,   0xEB3 },
+        { "caffeine",    0x816,  0x817,  0x818,  0x824,    0x825,   0xEB4 },
+        { "alcohol",     0x827,  0x828,  0x829,  0x835,    0x836,   0xEB5 },
+        { "cannabis",    0xDB1,  0xDB2,  0xDB3,  0xDAF,    0xDB0,   0xEB6 },
+        { "psilocybin",  0xDC0,  0xDC1,  0xDC2,  0xDBE,    0xDBF,   0xEB7 },
+        { "sex",         0xDCF,  0xDD0,  0xDD1,  0xDCD,    0xDCE,   0xEB8 },
+        { "gambling",    0xDDE,  0xDDF,  0xDE0,  0xDDC,    0xDDD,   0xEB9 },
+        { "gestation",   0xDED,  0xDEE,  0xDEF,  0xDEB,    0xDEC,   0xEBA },
+        { "lactation",   0xDFC,  0xDFD,  0xDFE,  0xDFA,    0xDFB,   0xEBB },
+        { "adrenaline",  0xE0B,  0xE0C,  0xE0D,  0xE09,    0xE0A,   0xEBC },
+        { "custom00",    0xE1A,  0xE1B,  0xE1C,  0xE18,    0xE19,   0xEBD },
+        { "custom01",    0xE29,  0xE2A,  0xE2B,  0xE27,    0xE28,   0xEBE },
+        { "custom02",    0xE38,  0xE39,  0xE3A,  0xE36,    0xE37,   0xEBF },
+        { "custom03",    0xE47,  0xE48,  0xE49,  0xE45,    0xE46,   0xEC0 },
+        { "custom04",    0xE56,  0xE57,  0xE58,  0xE54,    0xE55,   0xEC1 },
+        { "custom05",    0xE65,  0xE66,  0xE67,  0xE63,    0xE64,   0xEC2 },
+        { "custom06",    0xE74,  0xE75,  0xE76,  0xE72,    0xE73,   0xEC3 },
+        { "custom07",    0xE83,  0xE84,  0xE85,  0xE81,    0xE82,   0xEC4 },
+        { "custom08",    0xE92,  0xE93,  0xE94,  0xE90,    0xE91,   0xEC5 },
+        { "custom09",    0xEA1,  0xEA2,  0xEA3,  0xE9F,    0xEA0,   0xEC6 },
+        { "custom10",    0xEB0,  0xEB1,  0xEB2,  0xEAE,    0xEAF,   0xEC7 },
     };
 
     // Shared named acute-status effect library (a config's acute/blackout `effect` selects one by key).
@@ -132,7 +134,7 @@ namespace
     }
 
     // A named addictiveness preset (DESIGN §7) — the "onset × fade" curve. Bundles ONLY gain/gainFalloff/
-    // decay so a modder picks a feel, not numbers; addictionThreshold + toleranceHours stay explicit
+    // decay so a modder picks a feel, not numbers; addictionThreshold + hoursToWithdrawal stay explicit
     // per-category (the consequence-timing severity axis, §4.2).
     struct ArchetypeCurve
     {
@@ -148,10 +150,15 @@ namespace
         float       gainFalloff        = 1.5f;
         float       decay              = 0.4f;
         float       addictionThreshold = 15.0f;
-        float       toleranceHours     = 20.0f;
+        // Withdrawal-onset window (§4): `hoursToWithdrawal` at the threshold, tightening to
+        // `hoursToWithdrawalAtPeak` at level 100. `toleranceHours` is a back-compat alias for the former.
+        float       hoursToWithdrawal          = 20.0f;
+        float       hoursToWithdrawalAtPeak    = 20.0f;
+        bool        hoursToWithdrawalAtPeakSet = false;  // false → peak follows the base (flat)
         std::string group;            // from the internal roster manifest (or the GetName() scan)
         std::string levelGlobal;      // from the roster manifest; GlobalFloat data-out channel (§9)
         std::string stageGlobal;      // from the roster manifest; GlobalShort data-out channel (§9)
+        std::string acutePercentGlobal;  // roster; GlobalFloat: acute % over threshold, standardized data-out
         std::string addictionSpell;   // container spell (blank pool) — from the roster manifest
         std::string withdrawalSpell;  // container spell (blank pool) — from the roster manifest
         RawEffect   addiction;
@@ -336,6 +343,7 @@ namespace
             cat.group           = AFRef(r.group);
             cat.levelGlobal     = AFRef(r.levelGlobal);
             cat.stageGlobal     = AFRef(r.stageGlobal);
+            cat.acutePercentGlobal = AFRef(r.acutePercentGlobal);
             cat.addictionSpell  = AFRef(r.addictionSpell);
             cat.withdrawalSpell = AFRef(r.withdrawalSpell);
         }
@@ -418,9 +426,20 @@ namespace
                     cat.addictionThreshold = c.value("addictionThreshold", cat.addictionThreshold);
                     cat.activated = true;
                 }
-                if (c.contains("toleranceHours")) {
-                    cat.toleranceHours = c.value("toleranceHours", cat.toleranceHours);
+                // Withdrawal-onset window. Prefer `hoursToWithdrawal`; honor the legacy `toleranceHours` as
+                // an alias (only when the new key is absent in THIS file) so pre-existing configs — including
+                // OMania's skooma block — keep their behavior on upgrade.
+                if (c.contains("hoursToWithdrawal")) {
+                    cat.hoursToWithdrawal = c.value("hoursToWithdrawal", cat.hoursToWithdrawal);
                     cat.activated = true;
+                } else if (c.contains("toleranceHours")) {
+                    cat.hoursToWithdrawal = c.value("toleranceHours", cat.hoursToWithdrawal);
+                    cat.activated = true;
+                }
+                if (c.contains("hoursToWithdrawalAtPeak")) {
+                    cat.hoursToWithdrawalAtPeak    = c.value("hoursToWithdrawalAtPeak", cat.hoursToWithdrawalAtPeak);
+                    cat.hoursToWithdrawalAtPeakSet = true;
+                    cat.activated                  = true;
                 }
                 // Roster forms (group/levelGlobal/stageGlobal/addiction+withdrawal container spells) are
                 // baked in and seeded before this merge — configs no longer supply them.
@@ -519,6 +538,18 @@ namespace AddictionFramework
         }
         BlackoutManager::GetSingleton()->SetExcludeQuests(std::move(excludeQuests));
 
+        // Register the shared acute-effect library (name → spell FormID) so the C++/native API can answer
+        // IsAcuteEffectActive("Drunk"/…). Whole library, independent of which categories select it — an
+        // unselected effect just never gets applied, so the query returns false.
+        for (auto& [key, ref] : rawAcuteEffects) {
+            if (auto* sp = ResolveForm<RE::SpellItem>(ref)) {
+                AddictionManager::GetSingleton()->RegisterAcuteEffect(key, sp->GetFormID());
+            } else {
+                logger::warn("Config: acute effect '{}' ref '{}' did not resolve to a Spell — "
+                             "IsAcuteEffectActive(\"{}\") will report false.", key, ref, key);
+            }
+        }
+
         // Resolve the AF_Intoxicated keyword (used to mark which acute effects count as intoxication).
         RE::BGSKeyword* intoxKeyword = rawIntoxKeyword.empty() ? nullptr : ResolveForm<RE::BGSKeyword>(rawIntoxKeyword);
 
@@ -579,7 +610,10 @@ namespace AddictionFramework
             cat.gainFalloff        = rc.gainFalloff;
             cat.decay              = rc.decay;
             cat.addictionThreshold = rc.addictionThreshold;
-            cat.toleranceHours     = rc.toleranceHours;
+            cat.hoursToWithdrawal  = rc.hoursToWithdrawal;
+            // Peak follows the base when a config didn't pin it → a flat window (no level tightening).
+            cat.hoursToWithdrawalAtPeak =
+                rc.hoursToWithdrawalAtPeakSet ? rc.hoursToWithdrawalAtPeak : rc.hoursToWithdrawal;
 
             auto buildEffect = [&](const RawEffect& re, const std::string& a_container, const char* which,
                                    const char* suffix) -> EffectDef {
@@ -639,6 +673,14 @@ namespace AddictionFramework
                 } else {
                     logger::error("Config: category '{}' stageGlobal '{}' did not resolve — no Stage channel.",
                                   name, rc.stageGlobal);
+                }
+            }
+            if (!rc.acutePercentGlobal.empty()) {
+                if (auto* g = ResolveForm<RE::TESGlobal>(rc.acutePercentGlobal)) {
+                    cat.acutePercentGlobal = g->GetFormID();
+                } else {
+                    logger::error("Config: category '{}' acutePercentGlobal '{}' did not resolve — no channel.",
+                                  name, rc.acutePercentGlobal);
                 }
             }
 

@@ -28,6 +28,10 @@ bool     function IsAddicted(string asCategory) global native
 bool     function IsInAcuteStatus(string asCategory) global native     ; any acute status active (trailing-window potency >= threshold)
 bool     function IsIntoxicated(string asCategory) global native       ; acute active AND the effect is an inebriation one (carries AF_Intoxicated)
 float    function GetAcuteLevel(string asCategory) global native       ; current trailing-window potency sum
+; asEffect here is an acute STATUS name, not a category: "Drunk" / "High" / "Stoned" / "Wired" (the shared
+; effect library). True if that effect is applied to the player from ANY category (the cross-category
+; complement to IsInAcuteStatus, which is per-category). Unknown name is a safe no-op (false).
+bool     function IsAcuteEffectActive(string asEffect) global native
 string[] function GetActiveAddictions() global native                  ; category names currently addicted
 
 ; --- mutate ---

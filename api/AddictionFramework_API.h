@@ -75,6 +75,10 @@ namespace AddictionFrameworkAPI
     enum InterfaceVersion : std::uint32_t
     {
         kInterfaceVersion1 = 1,
+        kInterfaceVersion2 = 2,  // adds IsAcuteEffectActive (IVAddictionFramework2)
+        kInterfaceVersion3 = 3,  // adds GetAcutePercent (IVAddictionFramework3)
+
+        kInterfaceVersionLatest = kInterfaceVersion3,
     };
 
     // AF's SKSE plugin name — the sender to filter on (mechanism B) and the DLL to look up (mechanism A).
@@ -175,6 +179,41 @@ namespace AddictionFrameworkAPI
         // DLL boundary isn't ABI-safe. Track the category names you care about on your side, or query
         // IsCategoryActive/IsAddicted per name.)
     };
+
+    // ───────────────────────────────────────────────────────────────────────────────────────────────
+    // v2 — append-only extension of v1. Single-inheritance, so a v2 pointer and its v1 base share one
+    // address: an instance is safe to use through either interface. Acquire with GetAPI2() (GetProcAddress)
+    // or, over messaging, static_cast the delivered `api` to IVAddictionFramework2* once abiVersion >= 2.
+    // ───────────────────────────────────────────────────────────────────────────────────────────────
+    class IVAddictionFramework2 : public IVAddictionFramework1
+    {
+    public:
+        // Is the shared acute-status EFFECT with this key currently applied to the player? `a_effectKey` is
+        // a named status from AF's shared library — "Drunk", "High", "Stoned", or "Wired" (case-insensitive)
+        // — which any number of categories may drive. Returns the ref-counted applied state: true iff some
+        // active category is driving that effect right now. Unknown key → false.
+        //
+        // This complements v1's per-category acute queries: IsInAcuteStatus(category) tells you WHICH
+        // category is acute; IsAcuteEffectActive(key) tells you whether a given status effect is active at
+        // all, across every category (e.g. "is the player High from anything?"). Main-thread only.
+        [[nodiscard]] virtual bool IsAcuteEffectActive(const char* a_effectKey) = 0;
+    };
+
+    // ───────────────────────────────────────────────────────────────────────────────────────────────
+    // v3 — append-only extension of v2. Single-inheritance, so a v3 pointer shares one address with its
+    // v1/v2 bases. Acquire with GetAPI3() (GetProcAddress) or static_cast a delivered `api` once
+    // abiVersion >= 3.
+    // ───────────────────────────────────────────────────────────────────────────────────────────────
+    class IVAddictionFramework3 : public IVAddictionFramework2
+    {
+    public:
+        // Acute intensity as a PERCENT OVER the acute threshold — a category-agnostic, potency-scale-free
+        // signal for conditioning on "how affected right now": 0 = off / exactly at threshold, 100 = twice
+        // the threshold, 200 = three times, unbounded above. Prefer this over GetAcuteLevel when you want a
+        // standardized number across categories whose potency scales differ. Mirrored by the per-category
+        // `AF<Cat>AcutePercent` GlobalFloat (for CK/OAR/dialogue conditions). Unknown / not-acute → 0.
+        [[nodiscard]] virtual float GetAcutePercent(const char* a_category) = 0;
+    };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────────────────────────
@@ -198,22 +237,46 @@ namespace AddictionFrameworkAPI
     // The exported signature: extern "C" void* AF_RequestPluginAPI(std::uint32_t abiVersion).
     using RequestAPIFn = void* (*)(std::uint32_t);
 
-    // Acquire AF's interface. Safe to call repeatedly (the lookup is cached). nullptr = AF not present
-    // or the requested version is newer than AF provides.
-    [[nodiscard]] inline IVAddictionFramework1* GetAPI(std::uint32_t a_abiVersion = kInterfaceVersion1)
+    // Raw acquisition against a specific ABI version. nullptr = AF absent, too old to export the API, or
+    // too old to provide the requested version. The returned void* points at the singleton; cast it to the
+    // interface matching the version you requested.
+    [[nodiscard]] inline void* RequestAPIRaw(std::uint32_t a_abiVersion)
     {
-        static IVAddictionFramework1* cached = [a_abiVersion]() -> IVAddictionFramework1* {
-            const HMODULE handle = GetModuleHandleA("AddictionFramework.dll");
-            if (!handle) {
-                return nullptr;  // AF not installed / not loaded
-            }
-            const auto request =
-                reinterpret_cast<RequestAPIFn>(GetProcAddress(handle, kRequestAPIExport));
-            if (!request) {
-                return nullptr;  // AF too old to export the C++ API
-            }
-            return static_cast<IVAddictionFramework1*>(request(a_abiVersion));
-        }();
+        const HMODULE handle = GetModuleHandleA("AddictionFramework.dll");
+        if (!handle) {
+            return nullptr;  // AF not installed / not loaded
+        }
+        const auto request = reinterpret_cast<RequestAPIFn>(GetProcAddress(handle, kRequestAPIExport));
+        if (!request) {
+            return nullptr;  // AF too old to export the C++ API
+        }
+        return request(a_abiVersion);
+    }
+
+    // Acquire the v1 interface. Safe to call repeatedly (cached). nullptr = AF not present. A v2+ AF still
+    // answers this (v1 is the base subobject), so existing v1 consumers are unaffected.
+    [[nodiscard]] inline IVAddictionFramework1* GetAPI()
+    {
+        static IVAddictionFramework1* cached =
+            static_cast<IVAddictionFramework1*>(RequestAPIRaw(kInterfaceVersion1));
+        return cached;
+    }
+
+    // Acquire the v2 interface (adds IsAcuteEffectActive). Cached. nullptr = AF absent OR older than v2 —
+    // so a non-null return doubles as the version guard.
+    [[nodiscard]] inline IVAddictionFramework2* GetAPI2()
+    {
+        static IVAddictionFramework2* cached =
+            static_cast<IVAddictionFramework2*>(RequestAPIRaw(kInterfaceVersion2));
+        return cached;
+    }
+
+    // Acquire the v3 interface (adds GetAcutePercent). Cached. nullptr = AF absent OR older than v3 —
+    // so a non-null return doubles as the version guard.
+    [[nodiscard]] inline IVAddictionFramework3* GetAPI3()
+    {
+        static IVAddictionFramework3* cached =
+            static_cast<IVAddictionFramework3*>(RequestAPIRaw(kInterfaceVersion3));
         return cached;
     }
 }

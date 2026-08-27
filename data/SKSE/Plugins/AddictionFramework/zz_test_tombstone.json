@@ -1,6 +1,0 @@
-{
-  "_comment": "Loads after AddictionFramework.json (z > A): tombstones 0x801, which the main config assigned to caffeine. Tests last-loaded-wins + 'none' pulling an item back out entirely (also clears the ESP-preset ENIT on 0x801).",
-  "consumables": {
-    "zzAddictionTest.esp|0x801": "none"
-  }
-}

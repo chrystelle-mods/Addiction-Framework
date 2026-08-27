@@ -42,6 +42,16 @@ namespace
     {
         return AddictionFramework::AddictionManager::GetSingleton()->GetAcuteLevel(KeyOf(asCategory));
     }
+    float API_GetAcutePercent(RE::StaticFunctionTag*, RE::BSFixedString asCategory)
+    {
+        return AddictionFramework::AddictionManager::GetSingleton()->GetAcutePercent(KeyOf(asCategory));
+    }
+    bool API_IsAcuteEffectActive(RE::StaticFunctionTag*, RE::BSFixedString asEffect)
+    {
+        // asEffect is a shared acute-status NAME (Drunk/High/Stoned/Wired), not a category.
+        const char* key = asEffect.c_str();
+        return AddictionFramework::AddictionManager::GetSingleton()->IsAcuteEffectActive(key ? key : "");
+    }
     float API_NotifyUse(RE::StaticFunctionTag*, RE::BSFixedString asCategory, float amount)
     {
         return AddictionFramework::AddictionManager::GetSingleton()->NotifyUse(KeyOf(asCategory), amount);
@@ -134,6 +144,8 @@ bool AddictionFramework::Papyrus::Bind(RE::BSScript::IVirtualMachine* a_vm)
     a_vm->RegisterFunction("IsInAcuteStatus", "Addiction", API_IsInAcuteStatus);
     a_vm->RegisterFunction("IsIntoxicated", "Addiction", API_IsIntoxicated);
     a_vm->RegisterFunction("GetAcuteLevel", "Addiction", API_GetAcuteLevel);
+    a_vm->RegisterFunction("GetAcutePercent", "Addiction", API_GetAcutePercent);
+    a_vm->RegisterFunction("IsAcuteEffectActive", "Addiction", API_IsAcuteEffectActive);
     a_vm->RegisterFunction("NotifyUse", "Addiction", API_NotifyUse);
     a_vm->RegisterFunction("AddLevel", "Addiction", API_AddLevel);
     a_vm->RegisterFunction("Cure", "Addiction", API_Cure);

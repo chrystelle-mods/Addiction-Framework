@@ -40,10 +40,10 @@ namespace
     // The concrete interface. A THIN export layer: every method forwards to AddictionManager, the same
     // singleton src/Papyrus.cpp's API_* natives call — no logic of its own. Main-thread only (documented
     // in the shipped header): these touch the manager, player, and magic effects.
-    class AddictionFrameworkAPIImpl final : public AddictionFrameworkAPI::IVAddictionFramework1
+    class AddictionFrameworkAPIImpl final : public AddictionFrameworkAPI::IVAddictionFramework3
     {
     public:
-        std::uint32_t GetVersion() override { return AddictionFrameworkAPI::kInterfaceVersion1; }
+        std::uint32_t GetVersion() override { return AddictionFrameworkAPI::kInterfaceVersionLatest; }
 
         float NotifyUse(const char* a_category, float a_amount) override
         {
@@ -119,19 +119,32 @@ namespace
             return AddictionManager::GetSingleton()->GetAcuteLevel(KeyOf(a_category));
         }
         void CureAll() override { AddictionManager::GetSingleton()->CureAll(); }
+
+        // --- v2 ---
+        bool IsAcuteEffectActive(const char* a_effectKey) override
+        {
+            return AddictionManager::GetSingleton()->IsAcuteEffectActive(a_effectKey ? a_effectKey : "");
+        }
+
+        // --- v3 ---
+        float GetAcutePercent(const char* a_category) override
+        {
+            return AddictionManager::GetSingleton()->GetAcutePercent(KeyOf(a_category));
+        }
     };
 
     // Process-lifetime singletons: the interface object + the messaging payload that points at it.
     AddictionFrameworkAPIImpl               g_apiImpl;
-    AddictionFrameworkAPI::InterfaceMessage g_apiMessage{ AddictionFrameworkAPI::kInterfaceVersion1,
+    AddictionFrameworkAPI::InterfaceMessage g_apiMessage{ AddictionFrameworkAPI::kInterfaceVersionLatest,
                                                           &g_apiImpl };
 }
 
 // GetProcAddress target (mechanism A). extern "C" → exported undecorated as "AF_RequestPluginAPI" on x64.
-// Returns the singleton, or nullptr if the caller wants a newer ABI than we implement.
+// Returns the singleton, or nullptr if the caller wants a newer ABI than we implement. The singleton uses
+// single inheritance (v3 : v2 : v1), so its address is valid for every interface pointer.
 extern "C" DLLEXPORT void* AF_RequestPluginAPI(std::uint32_t a_abiVersion)
 {
-    if (a_abiVersion > AddictionFrameworkAPI::kInterfaceVersion1) {
+    if (a_abiVersion > AddictionFrameworkAPI::kInterfaceVersionLatest) {
         return nullptr;
     }
     return &g_apiImpl;
@@ -145,7 +158,7 @@ namespace AddictionFramework::PluginAPI
             messaging->Dispatch(AddictionFrameworkAPI::kMessage_DeliverInterface, &g_apiMessage,
                                 sizeof(g_apiMessage), nullptr);  // nullptr receiver = all listeners
             logger::info("PluginAPI: broadcast C++ interface v{} to listeners.",
-                         static_cast<int>(AddictionFrameworkAPI::kInterfaceVersion1));
+                         static_cast<int>(AddictionFrameworkAPI::kInterfaceVersionLatest));
         }
     }
 }

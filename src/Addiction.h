@@ -34,7 +34,13 @@ namespace AddictionFramework
         float gainFalloff        = 1.5f;   // diminishing-returns exponent (higher = flattens sooner)
         float decay              = 0.4f;   // level lost per game-hour
         float addictionThreshold = 15.0f;  // level at/above which the addicted latch engages
-        float toleranceHours     = 20.0f;  // hours since last use before withdrawal onsets (while addicted)
+        // Withdrawal-onset window: hours since last use before withdrawal onsets (while addicted). The
+        // window TIGHTENS as addiction deepens — lerp `hoursToWithdrawal` (at addictionThreshold) →
+        // `hoursToWithdrawalAtPeak` (at level 100), clamped, against the current decaying level. When the
+        // two are equal (the default / a config that omits …AtPeak) the window is flat. Config key
+        // `hoursToWithdrawal`; the legacy `toleranceHours` is honored as a back-compat alias.
+        float hoursToWithdrawal       = 20.0f;
+        float hoursToWithdrawalAtPeak = 20.0f;  // == hoursToWithdrawal → flat (no level tightening)
 
         // --- consequence effects (magnitude scales with level; §5.1) ---
         EffectDef addiction;   // active while addicted
@@ -45,6 +51,7 @@ namespace AddictionFramework
         // 0 = no global for that channel.
         RE::FormID levelGlobal = 0;  // GlobalFloat  ← current level (0–100)
         RE::FormID stageGlobal = 0;  // GlobalShort  ← current stage (0 clean / 1 satisfied / 2 withdrawal)
+        RE::FormID acutePercentGlobal = 0;  // GlobalFloat  ← acute % over threshold (0 = off; 100 = 2× threshold)
 
         // --- acute status (§7, the acute axis): a visible marker ability AF toggles when the trailing-window
         // potency SUM crosses a threshold. Orthogonal to the level. The config SELECTS which effect to apply
@@ -103,6 +110,14 @@ namespace AddictionFramework
         std::uint32_t KeyForName(const std::string& a_name) const;   // 0 if unknown
         std::string   NameForKey(std::uint32_t a_groupFormID) const;  // "" if unknown
 
+        // Register a shared acute-effect library entry (name → its spell FormID), from Config::Load. Lets
+        // IsAcuteEffectActive resolve a status name (Drunk/High/Stoned/Wired) to the spell AF ref-count-
+        // applies. Name is stored lowercased for case-insensitive lookup.
+        void RegisterAcuteEffect(const std::string& a_name, std::uint32_t a_spellFormID);
+        // Is the shared acute effect with this name currently applied to the player? (ref-counted applied
+        // state — true iff some category driving that effect is in acute status.) Unknown name → false.
+        bool IsAcuteEffectActive(const std::string& a_name) const;
+
         // Register a use of `potency` (the item's AddictionChance) toward a category. Returns new level.
         float RegisterUse(std::uint32_t a_category, float a_potency);
 
@@ -112,6 +127,7 @@ namespace AddictionFramework
         bool  IsInAcuteStatus(std::uint32_t a_category);    // any acute status active (potency sum ≥ threshold)
         bool  IsIntoxicated(std::uint32_t a_category);      // acute active AND the effect carries AF_Intoxicated
         float GetAcuteLevel(std::uint32_t a_category);       // the current trailing-window potency sum
+        float GetAcutePercent(std::uint32_t a_category);     // % over the acute threshold (0 = off; 100 = 2×)
 
         // --- public API surface (§9), driven by the Papyrus `Addiction` natives ---
         float NotifyUse(std::uint32_t a_category, float a_amount);  // trigger-agnostic relay = RegisterUse
@@ -178,7 +194,7 @@ namespace AddictionFramework
         // Settle → compute stage → drive both consequence effects → drive data-out globals → fire stage-
         // change event on transition.
         void            UpdateState(std::uint32_t a_category, State& a_st, const Category& a_cat, float a_now);
-        void            DriveGlobals(const Category& a_cat, const State& a_st, Stage a_stage) const;
+        void            DriveGlobals(const Category& a_cat, const State& a_st, Stage a_stage, float a_now) const;
         // Acute axis: sum recent potencies in the trailing window; toggle the (possibly shared) marker
         // ability + fire the acute edge event.
         float           RecentPotency(const State& a_st, float a_windowHours, float a_now) const;
@@ -200,6 +216,7 @@ namespace AddictionFramework
         std::unordered_map<std::uint32_t, std::string> _keyNames;      // group FormID → config name (reverse)
         std::unordered_map<std::uint32_t, State>       _states;        // group-spell FormID → player state
         std::unordered_map<std::uint32_t, Modifiers>   _scriptModifiers;  // group-spell FormID → script offsets
+        std::unordered_map<std::string, std::uint32_t> _acuteEffects;  // acute-status name (lc) → spell FormID
         float                                           _tickAccum = 0.0f;
     };
 }
