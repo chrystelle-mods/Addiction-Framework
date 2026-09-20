@@ -79,14 +79,14 @@ extern "C" DLLEXPORT constinit auto SKSEPlugin_Version = []() {
     return v;
 }();
 
-extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Query(const SKSE::QueryInterface*, SKSE::PluginInfo* a_info) {
+extern "C" DLLEXPORT bool SKSEPlugin_Query(const SKSE::QueryInterface*, SKSE::PluginInfo* a_info) {
     a_info->infoVersion = SKSE::PluginInfo::kVersion;
     a_info->name = "AddictionFramework";
     a_info->version = 0x00010000;  // 0.1.0.0 packed
     return true;
 }
 
-extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const LoadInterface* a_skse) {
+extern "C" DLLEXPORT bool SKSEPlugin_Load(const LoadInterface* a_skse) {
     InitializeLogging();
 
     auto* plugin = PluginDeclaration::GetSingleton();

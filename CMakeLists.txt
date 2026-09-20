@@ -20,7 +20,7 @@ set_from_environment(VCPKG_ROOT)
 add_compile_definitions(SKYRIM)
 
 ########################################################################################################################
-## CommonLibSSE-NG (alandtse/CommonLibVR branch ng, pinned f343b8c / v3.7.0-1017) — built from the vendored source
+## CommonLibSSE-NG (alandtse/CommonLibVR, pinned v8.4.0 — Skyrim AE 1.7.x/1799 support) — git submodule
 ########################################################################################################################
 set(BUILD_TESTS OFF CACHE BOOL "" FORCE)  # CommonLib defaults tests ON → would drag in Catch2
 add_subdirectory(extern/CommonLibSSE-NG CommonLibSSE EXCLUDE_FROM_ALL)
